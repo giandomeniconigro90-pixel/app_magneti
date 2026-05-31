@@ -24,7 +24,8 @@ button { font-family: 'Nunito', sans-serif; }
 .tile-count-label { font-size: 11px; font-weight: 600; margin-top: 1px; }
 .tile-controls { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
 .ctrl-btn { width: 32px; height: 32px; border-radius: 50%; border: none; cursor: pointer; font-size: 18px; font-weight: 800; display: flex; align-items: center; justify-content: center; transition: all 0.15s; }
-.ctrl-val { min-width: 42px; text-align: center; font-weight: 900; font-size: 17px; border: none; background: transparent; outline: none; font-family: 'Nunito', sans-serif; }
+.ctrl-val { width: 46px; text-align: center; font-weight: 900; font-size: 17px; border: 2px solid #f0f0f0; border-radius: 10px; background: #fafafa; outline: none; font-family: 'Nunito', sans-serif; padding: 2px 4px; }
+.ctrl-val:focus { border-color: #4b7bec; background: white; }
 input[type=number].ctrl-val::-webkit-inner-spin-button,
 input[type=number].ctrl-val::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
 input[type=number].ctrl-val { -moz-appearance: textfield; }
@@ -43,6 +44,7 @@ input[type=number].ctrl-val { -moz-appearance: textfield; }
 .idea-emoji { font-size: 36px; line-height: 1; }
 .idea-badges { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; justify-content: flex-end; }
 .diff-badge { font-size: 11px; padding: 3px 10px; border-radius: 20px; font-weight: 700; }
+.badge-3d { font-size: 10px; padding: 3px 8px; border-radius: 20px; font-weight: 800; background: linear-gradient(135deg,#4b7bec,#a55eea); color: white; }
 .fav-btn { background: none; border: none; cursor: pointer; font-size: 20px; padding: 0; line-height: 1; }
 .idea-name { font-size: 16px; font-weight: 800; color: #2d3436; margin-bottom: 6px; }
 .idea-meta { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 8px; }
@@ -97,17 +99,28 @@ const DIFFS = ["Tutti","Facile","Medio","Difficile"];
 const AGES  = ["Tutti","2-4 anni","5-7 anni","8+ anni"];
 const COUNTS = [3,5,8,10];
 
+// is3d flag: true = costruzione tridimensionale
 const TEMPLATES = [
-  { nome:"Castello",   emoji:"🏰", categoria:"Fantasia",   difficolta:2, tempo_minuti:20, descrizione:"Un castello colorato con torri triangolari.",         suggerimento:"Usa le forme grandi per le torri.",          pezzi:[["quadrato_grande",2],["triangolo_isoscele_grande",2],["esagono",1]] },
-  { nome:"Pesce",      emoji:"🐟", categoria:"Animali",    difficolta:1, tempo_minuti:10, descrizione:"Un pesce semplice con corpo compatto.",                suggerimento:"Le forme piccole aiutano a fare la coda.",    pezzi:[["quadrato_piccolo",1],["triangolo_equilatero",2],["rombo",1]] },
-  { nome:"Auto",       emoji:"🚗", categoria:"Veicoli",    difficolta:1, tempo_minuti:12, descrizione:"Una macchinina veloce e simmetrica.",                  suggerimento:"Scegli un quadrato grande come base.",        pezzi:[["quadrato_grande",1],["quadrato_piccolo",2],["triangolo_rettangolo",2]] },
-  { nome:"Casa",       emoji:"🏠", categoria:"Edifici",    difficolta:1, tempo_minuti:10, descrizione:"Una casetta essenziale con tetto triangolare.",        suggerimento:"Il tetto viene bene con i triangoli.",        pezzi:[["quadrato_grande",1],["triangolo_isoscele_grande",2]] },
-  { nome:"Stella",     emoji:"⭐", categoria:"Forme",      difficolta:2, tempo_minuti:15, descrizione:"Una stella scenografica e luminosa.",                  suggerimento:"Alterna triangoli diversi per i raggi.",      pezzi:[["triangolo_equilatero",4],["rombo",1]] },
-  { nome:"Robot",      emoji:"🤖", categoria:"Personaggi", difficolta:2, tempo_minuti:18, descrizione:"Un robot simpatico con corpo squadrato.",              suggerimento:"Aggiungi dettagli con piccoli triangoli.",    pezzi:[["quadrato_grande",1],["quadrato_piccolo",2],["rombo",1],["triangolo_rettangolo",2]] },
-  { nome:"Tartaruga",  emoji:"🐢", categoria:"Animali",    difficolta:2, tempo_minuti:16, descrizione:"Una tartaruga con guscio esagonale ben visibile.",     suggerimento:"Usa l'esagono per il guscio.",                pezzi:[["esagono",1],["quadrato_piccolo",2],["triangolo_isoscele_piccolo",2]] },
-  { nome:"Farfalla",   emoji:"🦋", categoria:"Natura",     difficolta:2, tempo_minuti:14, descrizione:"Una farfalla leggera e colorata.",                     suggerimento:"Le ali stanno bene con forme simmetriche.",   pezzi:[["rombo",1],["triangolo_equilatero",2],["quadrato_piccolo",2]] },
-  { nome:"Fiore",      emoji:"🌺", categoria:"Natura",     difficolta:1, tempo_minuti:10, descrizione:"Un fiore geometrico dai petali regolari.",             suggerimento:"I pentagoni formano ottimi petali.",          pezzi:[["pentagono",1],["triangolo_equilatero",3]] },
-  { nome:"Aquilone",   emoji:"🪁", categoria:"Giochi",     difficolta:1, tempo_minuti:8,  descrizione:"Un aquilone pronto a volare.",                         suggerimento:"Il rombo è perfetto come corpo.",             pezzi:[["rombo",1],["triangolo_isoscele_piccolo",2]] },
+  // 2D
+  { nome:"Castello",        is3d:false, emoji:"🏰", categoria:"Fantasia",   difficolta:2, tempo_minuti:20, descrizione:"Un castello colorato con torri triangolari.",                             suggerimento:"Usa le forme grandi per le torri.",                                    pezzi:[["quadrato_grande",2],["triangolo_isoscele_grande",2],["esagono",1]] },
+  { nome:"Pesce",           is3d:false, emoji:"🐟", categoria:"Animali",    difficolta:1, tempo_minuti:10, descrizione:"Un pesce semplice con corpo compatto e coda elegante.",                   suggerimento:"Le forme piccole aiutano a fare la coda.",                            pezzi:[["quadrato_piccolo",1],["triangolo_equilatero",2],["rombo",1]] },
+  { nome:"Auto",            is3d:false, emoji:"🚗", categoria:"Veicoli",    difficolta:1, tempo_minuti:12, descrizione:"Una macchinina veloce e simmetrica.",                                      suggerimento:"Scegli un quadrato grande come base.",                                pezzi:[["quadrato_grande",1],["quadrato_piccolo",2],["triangolo_rettangolo",2]] },
+  { nome:"Casa",            is3d:false, emoji:"🏠", categoria:"Edifici",    difficolta:1, tempo_minuti:10, descrizione:"Una casetta essenziale con tetto triangolare.",                            suggerimento:"Il tetto viene bene con i triangoli isosceli.",                       pezzi:[["quadrato_grande",1],["triangolo_isoscele_grande",2]] },
+  { nome:"Stella",          is3d:false, emoji:"⭐", categoria:"Forme",      difficolta:2, tempo_minuti:15, descrizione:"Una stella scenografica e luminosa a 5 punte.",                            suggerimento:"Alterna triangoli diversi per i raggi.",                              pezzi:[["triangolo_equilatero",4],["rombo",1]] },
+  { nome:"Robot",           is3d:false, emoji:"🤖", categoria:"Personaggi", difficolta:2, tempo_minuti:18, descrizione:"Un robot simpatico con corpo squadrato.",                                  suggerimento:"Aggiungi dettagli con piccoli triangoli.",                            pezzi:[["quadrato_grande",1],["quadrato_piccolo",2],["rombo",1],["triangolo_rettangolo",2]] },
+  { nome:"Tartaruga",       is3d:false, emoji:"🐢", categoria:"Animali",    difficolta:2, tempo_minuti:16, descrizione:"Una tartaruga con guscio esagonale ben visibile.",                         suggerimento:"Usa l'esagono per il guscio.",                                        pezzi:[["esagono",1],["quadrato_piccolo",2],["triangolo_isoscele_piccolo",2]] },
+  { nome:"Farfalla",        is3d:false, emoji:"🦋", categoria:"Natura",     difficolta:2, tempo_minuti:14, descrizione:"Una farfalla leggera e colorata con ali simmetriche.",                     suggerimento:"Le ali stanno bene con forme simmetriche.",                           pezzi:[["rombo",1],["triangolo_equilatero",2],["quadrato_piccolo",2]] },
+  { nome:"Fiore",           is3d:false, emoji:"🌺", categoria:"Natura",     difficolta:1, tempo_minuti:10, descrizione:"Un fiore geometrico dai petali regolari.",                                 suggerimento:"I pentagoni formano ottimi petali.",                                  pezzi:[["pentagono",1],["triangolo_equilatero",3]] },
+  { nome:"Aquilone",        is3d:false, emoji:"🪁", categoria:"Giochi",     difficolta:1, tempo_minuti:8,  descrizione:"Un aquilone pronto a volare con la sua coda.",                             suggerimento:"Il rombo è perfetto come corpo.",                                     pezzi:[["rombo",1],["triangolo_isoscele_piccolo",2]] },
+  // 3D
+  { nome:"Cubo 3D",         is3d:true,  emoji:"🧊", categoria:"Forme",      difficolta:3, tempo_minuti:25, descrizione:"Un cubo tridimensionale con sei facce quadrate assemblate spazialmente.",  suggerimento:"Assembla prima 4 facce laterali a formare il perimetro, poi chiudi con top e bottom.", pezzi:[["quadrato_grande",6]] },
+  { nome:"Piramide 3D",     is3d:true,  emoji:"🔺", categoria:"Forme",      difficolta:3, tempo_minuti:22, descrizione:"Una piramide a base quadrata con 4 facce triangolari in 3D.",               suggerimento:"Inizia dalla base quadrata e inclina i 4 triangoli verso l'apice.",   pezzi:[["quadrato_grande",1],["triangolo_isoscele_grande",4]] },
+  { nome:"Casetta 3D",      is3d:true,  emoji:"🏡", categoria:"Edifici",    difficolta:3, tempo_minuti:30, descrizione:"Una casetta tridimensionale completa con pareti e tetto a spiovente.",      suggerimento:"Costruisci prima le 4 pareti quadrate, poi chiudi con i triangoli del tetto.", pezzi:[["quadrato_grande",4],["triangolo_isoscele_grande",2],["quadrato_piccolo",2]] },
+  { nome:"Torre 3D",        is3d:true,  emoji:"🗼", categoria:"Edifici",    difficolta:2, tempo_minuti:20, descrizione:"Una torre prismatica esagonale con coronamento triangolare.",                suggerimento:"Gli esagoni si incastrano bene per le pareti; i triangoli chiudono la cima.", pezzi:[["esagono",4],["triangolo_equilatero",2]] },
+  { nome:"Diamante 3D",     is3d:true,  emoji:"💎", categoria:"Forme",      difficolta:3, tempo_minuti:25, descrizione:"Un diamante 3D con facce triangolari simmetriche sopra e sotto.",            suggerimento:"Parti dal punto apicale superiore e scendi simmetricamente su tutti i lati.", pezzi:[["triangolo_equilatero",4],["triangolo_isoscele_piccolo",4]] },
+  { nome:"Razzo 3D",        is3d:true,  emoji:"🚀", categoria:"Veicoli",    difficolta:3, tempo_minuti:28, descrizione:"Un razzo spaziale 3D con corpo cilindrico e punta conica.",                  suggerimento:"La punta conica si ottiene con 4 triangoli isosceli attorno a un pentagono.", pezzi:[["pentagono",1],["triangolo_isoscele_grande",4],["quadrato_grande",2]] },
+  { nome:"Igloo 3D",        is3d:true,  emoji:"⛺", categoria:"Fantasia",   difficolta:3, tempo_minuti:26, descrizione:"Un igloo 3D con cupola formata alternando pentagoni e triangoli.",            suggerimento:"Alterna pentagoni e triangoli per simulare la curvatura della cupola.",  pezzi:[["pentagono",2],["triangolo_equilatero",5],["esagono",1]] },
+  { nome:"Prisma 3D",       is3d:true,  emoji:"🔷", categoria:"Forme",      difficolta:2, tempo_minuti:18, descrizione:"Un prisma triangolare 3D, forma geometrica base molto versatile.",            suggerimento:"Due triangoli paralleli come basi, tre quadrati come facce laterali.",  pezzi:[["triangolo_equilatero",2],["quadrato_grande",3]] },
 ];
 
 function tileIcon(tile, size=32) {
@@ -125,7 +138,7 @@ function diffInfo(d) {
 let state = {
   tab: "inventario",
   inventory: Object.fromEntries(TILE_TYPES.map(t=>[t.id,0])),
-  filters: { difficolta:"Tutti", categoria:"Tutti", eta:"Tutti", quante:5 },
+  filters: { difficolta:"Tutti", categoria:"Tutti", eta:"Tutti", quante:5, solo3d:false },
   ideas: [], favs: [], loading: false, error: null, selected: null,
 };
 
@@ -150,11 +163,12 @@ function hasMissing(idea) {
 async function generate() {
   if(totalTiles()===0) { state.error="Aggiungi prima le piastrelle all'inventario!"; render(); return; }
   state.loading=true; state.error=null; render();
-  await new Promise(r=>setTimeout(r,500));
-  const {categoria, difficolta, quante} = state.filters;
+  await new Promise(r=>setTimeout(r,400));
+  const {categoria, difficolta, quante, solo3d} = state.filters;
   const results = [];
   for(const t of TEMPLATES) {
     if(results.length >= quante) break;
+    if(solo3d && !t.is3d) continue;
     if(categoria !== "Tutti" && categoria !== t.categoria) continue;
     if(difficolta !== "Tutti") {
       const d = difficolta==="Facile"?1:difficolta==="Medio"?2:3;
@@ -167,17 +181,29 @@ async function generate() {
       pezzi_necessari[k]=n;
     }
     if(!feasible) continue;
+
+    const passi3d = [
+      "Disponi tutti i pezzi necessari sul piano di lavoro.",
+      "Costruisci la base della struttura tridimensionale.",
+      "Assembla le facce laterali collegandole magneticamente.",
+      "Inclina e ungi le pareti per dare profondità alla forma.",
+      "Chiudi la struttura con la faccia superiore o l'apice.",
+      "Verifica la solidità magnetica di ogni giunzione.",
+      "Ammira la costruzione 3D completata da ogni angolazione!"
+    ];
+    const passi2d = [
+      "Disponi tutti i pezzi necessari sul piano di lavoro.",
+      "Costruisci la base della figura unendo i pezzi principali.",
+      "Aggiungi i pezzi secondari per dare forma e dettaglio.",
+      "Controlla la simmetria e la stabilità della costruzione.",
+      "Rifinisci i dettagli finali e ammira il risultato!"
+    ];
+
     results.push({
-      nome:t.nome, categoria:t.categoria, emoji:t.emoji,
+      nome:t.nome, categoria:t.categoria, emoji:t.emoji, is3d:t.is3d,
       difficolta:t.difficolta, tempo_minuti:t.tempo_minuti,
       descrizione:t.descrizione, pezzi_necessari,
-      passi:[
-        "Disponi tutti i pezzi necessari sul piano di lavoro.",
-        "Costruisci la base della figura unendo i pezzi principali.",
-        "Aggiungi i pezzi secondari per dare forma e dettaglio.",
-        "Controlla la simmetria e la stabilità della costruzione.",
-        "Rifinisci i dettagli finali e ammira il risultato!"
-      ],
+      passi: t.is3d ? passi3d : passi2d,
       suggerimento:t.suggerimento
     });
   }
@@ -193,15 +219,17 @@ function renderInventarioTab() {
   const rows = TILE_TYPES.map(tile => {
     const qty = state.inventory[tile.id];
     const active = qty > 0;
-    return `<div class="tile-row" style="border-color:${active?tile.color+"88":"transparent"}">
+    return `<div class="tile-row" data-tile="${tile.id}" style="border-color:${active?tile.color+"88":"transparent"}">
       ${tileIcon(tile,38)}
       <div class="tile-info">
         <div class="tile-name">${tile.label}</div>
-        ${active?`<div class="tile-count-label" style="color:${tile.color}">${qty} pezzi</div>`:""}
+        <div class="tile-count-label" style="color:${tile.color};visibility:${active?"visible":"hidden"}">${qty} pezzi</div>
       </div>
       <div class="tile-controls">
         <button class="ctrl-btn" style="background:${qty>0?"#f0f0f0":"#fafafa"};color:${qty>0?"#2d3436":"#dfe6e9"};cursor:${qty>0?"pointer":"not-allowed"}" onclick="updateInv('${tile.id}',-1)">−</button>
-        <input class="ctrl-val" type="number" min="0" max="99" value="${qty}" style="color:${active?tile.color:"#b2bec3"}" oninput="updateInvDirect('${tile.id}',this.value)">
+        <input class="ctrl-val" type="number" min="0" max="99" value="${qty}" style="color:${active?tile.color:"#b2bec3"}"
+          onchange="updateInvDirect('${tile.id}',this.value)"
+          oninput="updateInvDirect('${tile.id}',this.value)">
         <button class="ctrl-btn" style="background:${tile.color};color:white" onclick="updateInv('${tile.id}',1)">+</button>
       </div>
     </div>`;
@@ -210,7 +238,7 @@ function renderInventarioTab() {
   return `
     <div class="section-header">
       <span class="section-title">Le mie piastrelle</span>
-      <span class="badge">Totale: ${total}</span>
+      <span class="badge" id="total-badge">Totale: ${total}</span>
     </div>
     ${rows}
     ${total>0?`<button class="next-btn" onclick="setTab('genera')">Avanti → Configura e Genera ✨</button>`:""}
@@ -234,6 +262,7 @@ function renderConfiguraTab() {
     const s = state.filters.quante===n?`border-color:#fd9644;background:#fd9644;color:white`:"";
     return `<button class="filter-btn" style="${s}" onclick="setFilter('quante',${n})">${n}</button>`;
   };
+  const s3d = state.filters.solo3d;
   return `
     <div class="section-title" style="margin-bottom:14px">Configura la ricerca</div>
     <div class="inv-summary">
@@ -246,6 +275,13 @@ function renderConfiguraTab() {
     <div class="filter-card">
       <div class="filter-label">Quante idee generare: <span style="color:#fd9644;font-weight:900">${state.filters.quante}</span></div>
       <div class="filter-options">${COUNTS.map(qLabel).join("")}</div>
+    </div>
+    <div class="filter-card">
+      <div class="filter-label">Tipo costruzione</div>
+      <div class="filter-options">
+        <button class="filter-btn" style="${!s3d?"border-color:#4b7bec;background:#4b7bec;color:white":""}" onclick="setFilter('solo3d',false)">🗂 Tutte (2D + 3D)</button>
+        <button class="filter-btn" style="${s3d?"border-color:#a55eea;background:#a55eea;color:white":""}" onclick="setFilter('solo3d',true)">🧊 Solo 3D</button>
+      </div>
     </div>
     ${state.error?`<div class="error-box">⚠️ ${state.error}</div>`:""}
     <button class="gen-btn" ${state.loading?"disabled":""} onclick="generate()"
@@ -272,6 +308,7 @@ function renderIdeaCard(idea) {
     <div class="idea-top">
       <span class="idea-emoji">${idea.emoji||"🔧"}</span>
       <div class="idea-badges">
+        ${idea.is3d?`<span class="badge-3d">3D</span>`:""}
         ${missing?`<span class="missing-badge">⚠️ Pezzi mancanti</span>`:""}
         <span class="diff-badge" style="background:${diffColor}22;color:${diffColor}">${diffLabel}</span>
         <button class="fav-btn" onclick="event.stopPropagation();toggleFavById('${encoded}')">${fav?"⭐":"☆"}</button>
@@ -350,7 +387,7 @@ function renderModal() {
         <span style="font-size:50px">${idea.emoji||"🔧"}</span>
         <button class="close-btn" onclick="closeModal()">×</button>
       </div>
-      <div class="modal-title">${idea.nome}</div>
+      <div class="modal-title">${idea.nome} ${idea.is3d?'<span class="badge-3d" style="font-size:13px;vertical-align:middle">3D</span>':""}</div>
       <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px">
         <span class="diff-badge" style="background:${diffColor}22;color:${diffColor};font-size:12px;padding:4px 12px;border-radius:20px">${diffLabel}</span>
         <span class="meta-chip" style="font-size:12px;padding:4px 12px">${idea.categoria}</span>
@@ -393,14 +430,40 @@ function render() {
   `;
 }
 
-window.setTab          = tab      => { state.tab=tab; render(); };
-window.updateInv       = (id,d)   => { state.inventory[id]=Math.max(0,(state.inventory[id]||0)+d); render(); };
-window.updateInvDirect = (id,val) => { const n=parseInt(val); if(!isNaN(n)&&n>=0){ state.inventory[id]=n; render(); } };
-window.setFilter       = (k,v)    => { state.filters[k]=(k==="quante"?parseInt(v):v); render(); };
-window.generate        = generate;
-window.selectIdea      = enc      => { try{ state.selected=JSON.parse(decodeURIComponent(enc)); render(); }catch(e){} };
-window.closeModal      = ()       => { state.selected=null; render(); };
-window.toggleFavById   = enc      => { try{ toggleFav(JSON.parse(decodeURIComponent(enc))); }catch(e){ console.error(e); } };
+window.setTab        = tab    => { state.tab=tab; render(); };
+window.updateInv     = (id,d) => { state.inventory[id]=Math.max(0,(state.inventory[id]||0)+d); render(); };
+// updateInvDirect: aggiorna stato e solo il DOM necessario, SENZA fare render() completo
+// così l'input non perde il focus mentre si digita
+window.updateInvDirect = (id, val) => {
+  const n = parseInt(val);
+  if(isNaN(n) || n < 0) return;
+  state.inventory[id] = n;
+  const tile = TILE_TYPES.find(t=>t.id===id);
+  if(!tile) return;
+  const row = document.querySelector(`[data-tile="${id}"]`);
+  if(row) {
+    row.style.borderColor = n>0 ? tile.color+"88" : "transparent";
+    const lbl = row.querySelector(".tile-count-label");
+    if(lbl) { lbl.textContent=n+" pezzi"; lbl.style.visibility=n>0?"visible":"hidden"; }
+    const inp = row.querySelector(".ctrl-val");
+    if(inp) inp.style.color = n>0 ? tile.color : "#b2bec3";
+    const minusBtn = row.querySelector(".ctrl-btn");
+    if(minusBtn){ minusBtn.style.background=n>0?"#f0f0f0":"#fafafa"; minusBtn.style.color=n>0?"#2d3436":"#dfe6e9"; minusBtn.style.cursor=n>0?"pointer":"not-allowed"; }
+  }
+  const badge = document.getElementById("total-badge");
+  if(badge){ const tot=Object.values(state.inventory).reduce((a,b)=>a+b,0); badge.textContent="Totale: "+tot; }
+  const nextBtn = document.querySelector(".next-btn");
+  const total=Object.values(state.inventory).reduce((a,b)=>a+b,0);
+  if(!nextBtn && total>0){
+    const content=document.querySelector(".content");
+    if(content){ const b=document.createElement("button"); b.className="next-btn"; b.textContent="Avanti → Configura e Genera ✨"; b.onclick=()=>setTab("genera"); content.appendChild(b); }
+  }
+};
+window.setFilter     = (k,v)  => { state.filters[k]=(k==="quante"?parseInt(v):(k==="solo3d"?v:v)); render(); };
+window.generate      = generate;
+window.selectIdea    = enc    => { try{ state.selected=JSON.parse(decodeURIComponent(enc)); render(); }catch(e){} };
+window.closeModal    = ()     => { state.selected=null; render(); };
+window.toggleFavById = enc    => { try{ toggleFav(JSON.parse(decodeURIComponent(enc))); }catch(e){ console.error(e); } };
 
 loadFavs();
 render();
