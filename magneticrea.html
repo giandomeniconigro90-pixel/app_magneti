@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'Nunito', sans-serif; background: #f0f4ff; min-height: 100vh; }
+button { font-family: 'Nunito', sans-serif; }
+.header { background: linear-gradient(135deg, #4b7bec 0%, #a55eea 100%); padding: 22px 20px 16px; color: white; }
+.header h1 { font-size: 24px; font-weight: 900; letter-spacing: -0.5px; }
+.header p { font-size: 13px; opacity: 0.85; margin-top: 4px; }
+.tabs { background: white; padding: 8px 14px; display: flex; gap: 4px; overflow-x: auto; box-shadow: 0 2px 10px rgba(0,0,0,0.07); scrollbar-width: none; }
+.tabs::-webkit-scrollbar { display: none; }
+.tab-btn { padding: 8px 14px; border-radius: 20px; border: none; cursor: pointer; font-weight: 700; font-size: 13px; white-space: nowrap; transition: all 0.2s; background: transparent; color: #636e72; }
+.tab-btn.active { background: #4b7bec; color: white; }
+.content { padding: 18px 16px; max-width: 640px; margin: 0 auto; }
+.section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; }
+.section-title { font-size: 17px; font-weight: 800; color: #2d3436; }
+.badge { background: #4b7bec; color: white; border-radius: 20px; padding: 5px 14px; font-weight: 700; font-size: 13px; }
+.tile-row { background: white; border-radius: 16px; padding: 11px 14px; display: flex; align-items: center; gap: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); border: 2px solid transparent; transition: border-color 0.2s; margin-bottom: 8px; }
+.tile-info { flex: 1; min-width: 0; }
+.tile-name { font-weight: 700; font-size: 14px; color: #2d3436; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tile-count-label { font-size: 11px; font-weight: 600; margin-top: 1px; }
+.tile-controls { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+.ctrl-btn { width: 32px; height: 32px; border-radius: 50%; border: none; cursor: pointer; font-size: 18px; font-weight: 800; display: flex; align-items: center; justify-content: center; transition: all 0.15s; }
+.ctrl-val { min-width: 42px; text-align: center; font-weight: 900; font-size: 17px; border: none; background: transparent; outline: none; font-family: 'Nunito', sans-serif; }
+input[type=number].ctrl-val::-webkit-inner-spin-button,
+input[type=number].ctrl-val::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+input[type=number].ctrl-val { -moz-appearance: textfield; }
+.filter-card { background: white; border-radius: 14px; padding: 14px; margin-bottom: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
+.filter-label { font-size: 12px; font-weight: 700; color: #636e72; margin-bottom: 8px; }
+.filter-options { display: flex; flex-wrap: wrap; gap: 6px; }
+.filter-btn { padding: 7px 14px; border-radius: 20px; border: 2px solid #f0f0f0; background: white; color: #636e72; font-weight: 700; font-size: 12px; cursor: pointer; transition: all 0.15s; }
+.inv-summary { background: white; border-radius: 14px; padding: 12px 14px; margin-bottom: 14px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
+.inv-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.inv-chip { display: inline-flex; align-items: center; gap: 4px; border-radius: 20px; padding: 3px 10px; font-size: 12px; font-weight: 600; }
+.gen-btn { width: 100%; padding: 15px; border: none; border-radius: 18px; color: white; font-size: 16px; font-weight: 900; cursor: pointer; transition: all 0.2s; }
+.gen-btn:not(:disabled):hover { transform: translateY(-1px); }
+.idea-card { background: white; border-radius: 18px; padding: 16px; box-shadow: 0 3px 14px rgba(0,0,0,0.07); border: 2px solid transparent; cursor: pointer; transition: transform 0.15s, box-shadow 0.15s; margin-bottom: 12px; }
+.idea-card:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,0,0,0.1); }
+.idea-top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px; }
+.idea-emoji { font-size: 36px; line-height: 1; }
+.idea-badges { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; justify-content: flex-end; }
+.diff-badge { font-size: 11px; padding: 3px 10px; border-radius: 20px; font-weight: 700; }
+.fav-btn { background: none; border: none; cursor: pointer; font-size: 20px; padding: 0; line-height: 1; }
+.idea-name { font-size: 16px; font-weight: 800; color: #2d3436; margin-bottom: 6px; }
+.idea-meta { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 8px; }
+.meta-chip { font-size: 11px; background: #f0f0f0; color: #636e72; padding: 3px 9px; border-radius: 20px; font-weight: 600; }
+.idea-desc { font-size: 13px; color: #636e72; line-height: 1.5; margin-bottom: 10px; }
+.pieces-row { display: flex; flex-wrap: wrap; gap: 5px; }
+.piece-chip { display: inline-flex; align-items: center; gap: 4px; border-radius: 20px; padding: 3px 9px; font-size: 11px; font-weight: 600; border: 1px solid; }
+.hint { font-size: 11px; color: #b2bec3; text-align: right; margin-top: 10px; }
+.modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 999; display: flex; align-items: flex-end; justify-content: center; backdrop-filter: blur(4px); }
+.modal-box { background: white; border-radius: 22px 22px 0 0; padding: 24px 20px 36px; max-width: 640px; width: 100%; max-height: 90vh; overflow-y: auto; }
+.modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+.close-btn { background: #f0f0f0; border: none; border-radius: 50%; width: 36px; height: 36px; cursor: pointer; font-size: 20px; font-weight: 800; }
+.modal-title { font-size: 22px; font-weight: 900; color: #2d3436; margin-bottom: 10px; }
+.modal-desc { color: #636e72; line-height: 1.6; font-size: 14px; margin-bottom: 18px; }
+.sub-label { font-size: 11px; font-weight: 700; color: #b2bec3; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 10px; }
+.pieces-grid { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 20px; }
+.piece-detail { display: flex; align-items: center; gap: 8px; border-radius: 12px; padding: 8px 12px; border: 2px solid; }
+.piece-detail-name { font-size: 12px; font-weight: 700; }
+.piece-detail-qty { font-size: 11px; }
+.steps-list { display: flex; flex-direction: column; gap: 10px; margin-bottom: 20px; }
+.step-item { display: flex; gap: 10px; align-items: flex-start; }
+.step-num { min-width: 28px; height: 28px; border-radius: 50%; background: linear-gradient(135deg, #4b7bec, #a55eea); color: white; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 800; flex-shrink: 0; }
+.step-text { font-size: 13px; color: #2d3436; line-height: 1.55; padding-top: 4px; }
+.tip-box { background: #fffbe6; border: 2px solid #ffd43b; border-radius: 12px; padding: 12px; margin-bottom: 18px; font-size: 13px; color: #555; line-height: 1.5; }
+.save-btn { width: 100%; padding: 13px; border-radius: 16px; font-size: 15px; font-weight: 800; cursor: pointer; }
+.empty-state { text-align: center; padding: 50px 20px; }
+.empty-emoji { font-size: 52px; margin-bottom: 12px; }
+.empty-text { color: #636e72; font-size: 14px; margin-bottom: 18px; }
+.error-box { background: #ffe5e7; border: 2px solid #fc5c65; border-radius: 12px; padding: 12px 14px; margin-bottom: 14px; color: #fc5c65; font-weight: 600; font-size: 13px; }
+.next-btn { width: 100%; margin-top: 18px; padding: 14px; background: linear-gradient(135deg, #4b7bec, #a55eea); border: none; border-radius: 18px; color: white; font-size: 15px; font-weight: 800; cursor: pointer; }
+.missing-badge { font-size: 10px; background: #ffe5e7; color: #fc5c65; padding: 3px 8px; border-radius: 20px; font-weight: 700; }
+.loading-spinner { display: inline-block; width: 18px; height: 18px; border: 3px solid rgba(255,255,255,0.4); border-top-color: white; border-radius: 50%; animation: spin 0.8s linear infinite; margin-right: 8px; vertical-align: middle; }
+@keyframes spin { to { transform: rotate(360deg); } }
+</style>
+</head>
+<body>
+<div id="app"></div>
+<script type="module">
+const TILE_TYPES = [
+  { id:"quadrato_grande",            label:"Quadrato Grande",            short:"Q.Grande",  color:"#FF6B6B", bg:"#fff0f0", path:"M5 5 L45 5 L45 45 L5 45 Z" },
+  { id:"quadrato_piccolo",           label:"Quadrato Piccolo",           short:"Q.Piccolo", color:"#FF9F43", bg:"#fff4e6", path:"M14 14 L36 14 L36 36 L14 36 Z" },
+  { id:"triangolo_equilatero",       label:"Triangolo Equilatero",       short:"T.Equil.",  color:"#20bf6b", bg:"#e8fff2", path:"M25 5 L47 43 L3 43 Z" },
+  { id:"triangolo_isoscele_grande",  label:"Triangolo Isoscele Grande",  short:"T.Iso.G.",  color:"#45aaf2", bg:"#e3f4ff", path:"M25 3 L47 47 L3 47 Z" },
+  { id:"triangolo_isoscele_piccolo", label:"Triangolo Isoscele Piccolo", short:"T.Iso.P.",  color:"#2bcbba", bg:"#e5fffd", path:"M25 8 L44 42 L6 42 Z" },
+  { id:"triangolo_rettangolo",       label:"Triangolo Rettangolo",       short:"T.Rett.",   color:"#a55eea", bg:"#f5e6ff", path:"M5 5 L45 45 L5 45 Z" },
+  { id:"rombo",                      label:"Rombo",                      short:"Rombo",     color:"#fc5c65", bg:"#ffe5e7", path:"M25 5 L45 25 L25 45 L5 25 Z" },
+  { id:"pentagono",                  label:"Pentagono",                  short:"Penta.",    color:"#fd9644", bg:"#fff3e5", path:"M25 4 L46 20 L38 46 L12 46 L4 20 Z" },
+  { id:"esagono",                    label:"Esagono",                    short:"Esag.",     color:"#4b7bec", bg:"#e8eeff", path:"M47 25 L36 44 L14 44 L3 25 L14 6 L36 6 Z" },
+];
+const CATS  = ["Tutti","Animali","Edifici","Veicoli","Forme","Giochi","Personaggi","Natura","Fantasia"];
+const DIFFS = ["Tutti","Facile","Medio","Difficile"];
+const AGES  = ["Tutti","2-4 anni","5-7 anni","8+ anni"];
+const COUNTS = [3,5,8,10];
+
+const TEMPLATES = [
+  { nome:"Castello",   emoji:"🏰", categoria:"Fantasia",   difficolta:2, tempo_minuti:20, descrizione:"Un castello colorato con torri triangolari.",         suggerimento:"Usa le forme grandi per le torri.",          pezzi:[["quadrato_grande",2],["triangolo_isoscele_grande",2],["esagono",1]] },
+  { nome:"Pesce",      emoji:"🐟", categoria:"Animali",    difficolta:1, tempo_minuti:10, descrizione:"Un pesce semplice con corpo compatto.",                suggerimento:"Le forme piccole aiutano a fare la coda.",    pezzi:[["quadrato_piccolo",1],["triangolo_equilatero",2],["rombo",1]] },
+  { nome:"Auto",       emoji:"🚗", categoria:"Veicoli",    difficolta:1, tempo_minuti:12, descrizione:"Una macchinina veloce e simmetrica.",                  suggerimento:"Scegli un quadrato grande come base.",        pezzi:[["quadrato_grande",1],["quadrato_piccolo",2],["triangolo_rettangolo",2]] },
+  { nome:"Casa",       emoji:"🏠", categoria:"Edifici",    difficolta:1, tempo_minuti:10, descrizione:"Una casetta essenziale con tetto triangolare.",        suggerimento:"Il tetto viene bene con i triangoli.",        pezzi:[["quadrato_grande",1],["triangolo_isoscele_grande",2]] },
+  { nome:"Stella",     emoji:"⭐", categoria:"Forme",      difficolta:2, tempo_minuti:15, descrizione:"Una stella scenografica e luminosa.",                  suggerimento:"Alterna triangoli diversi per i raggi.",      pezzi:[["triangolo_equilatero",4],["rombo",1]] },
+  { nome:"Robot",      emoji:"🤖", categoria:"Personaggi", difficolta:2, tempo_minuti:18, descrizione:"Un robot simpatico con corpo squadrato.",              suggerimento:"Aggiungi dettagli con piccoli triangoli.",    pezzi:[["quadrato_grande",1],["quadrato_piccolo",2],["rombo",1],["triangolo_rettangolo",2]] },
+  { nome:"Tartaruga",  emoji:"🐢", categoria:"Animali",    difficolta:2, tempo_minuti:16, descrizione:"Una tartaruga con guscio esagonale ben visibile.",     suggerimento:"Usa l'esagono per il guscio.",                pezzi:[["esagono",1],["quadrato_piccolo",2],["triangolo_isoscele_piccolo",2]] },
+  { nome:"Farfalla",   emoji:"🦋", categoria:"Natura",     difficolta:2, tempo_minuti:14, descrizione:"Una farfalla leggera e colorata.",                     suggerimento:"Le ali stanno bene con forme simmetriche.",   pezzi:[["rombo",1],["triangolo_equilatero",2],["quadrato_piccolo",2]] },
+  { nome:"Fiore",      emoji:"🌺", categoria:"Natura",     difficolta:1, tempo_minuti:10, descrizione:"Un fiore geometrico dai petali regolari.",             suggerimento:"I pentagoni formano ottimi petali.",          pezzi:[["pentagono",1],["triangolo_equilatero",3]] },
+  { nome:"Aquilone",   emoji:"🪁", categoria:"Giochi",     difficolta:1, tempo_minuti:8,  descrizione:"Un aquilone pronto a volare.",                         suggerimento:"Il rombo è perfetto come corpo.",             pezzi:[["rombo",1],["triangolo_isoscele_piccolo",2]] },
+];
+
+function tileIcon(tile, size=32) {
+  return `<svg width="${size}" height="${size}" viewBox="0 0 50 50" style="flex-shrink:0;filter:drop-shadow(1px 2px 2px ${tile.color}44)">
+    <path d="${tile.path}" fill="${tile.color}" stroke="rgba(255,255,255,0.85)" stroke-width="2.5" stroke-linejoin="round"/>
+  </svg>`;
+}
+
+function diffInfo(d) {
+  if(d===1) return ["Facile","#20bf6b"];
+  if(d===2) return ["Medio","#fd9644"];
+  return ["Difficile","#fc5c65"];
+}
+
+let state = {
+  tab: "inventario",
+  inventory: Object.fromEntries(TILE_TYPES.map(t=>[t.id,0])),
+  filters: { difficolta:"Tutti", categoria:"Tutti", eta:"Tutti", quante:5 },
+  ideas: [], favs: [], loading: false, error: null, selected: null,
+};
+
+function loadFavs() {
+  try { const r=localStorage.getItem("mc_favs_v2"); if(r) state.favs=JSON.parse(r); } catch(e) {}
+}
+function saveFavs() {
+  try { localStorage.setItem("mc_favs_v2", JSON.stringify(state.favs)); } catch(e) {}
+}
+function toggleFav(idea) {
+  const idx = state.favs.findIndex(f=>f.nome===idea.nome);
+  if(idx>=0) state.favs.splice(idx,1); else state.favs.push(idea);
+  saveFavs(); render();
+}
+function isFav(idea) { return state.favs.some(f=>f.nome===idea.nome); }
+function totalTiles() { return Object.values(state.inventory).reduce((a,b)=>a+b,0); }
+function hasMissing(idea) {
+  if(!idea.pezzi_necessari) return false;
+  return Object.entries(idea.pezzi_necessari).some(([k,n])=>(state.inventory[k]||0)<n);
+}
+
+async function generate() {
+  if(totalTiles()===0) { state.error="Aggiungi prima le piastrelle all'inventario!"; render(); return; }
+  state.loading=true; state.error=null; render();
+  await new Promise(r=>setTimeout(r,500));
+  const {categoria, difficolta, quante} = state.filters;
+  const results = [];
+  for(const t of TEMPLATES) {
+    if(results.length >= quante) break;
+    if(categoria !== "Tutti" && categoria !== t.categoria) continue;
+    if(difficolta !== "Tutti") {
+      const d = difficolta==="Facile"?1:difficolta==="Medio"?2:3;
+      if(t.difficolta !== d) continue;
+    }
+    const pezzi_necessari = {};
+    let feasible = true;
+    for(const [k,n] of t.pezzi) {
+      if((state.inventory[k]||0) < n) { feasible=false; break; }
+      pezzi_necessari[k]=n;
+    }
+    if(!feasible) continue;
+    results.push({
+      nome:t.nome, categoria:t.categoria, emoji:t.emoji,
+      difficolta:t.difficolta, tempo_minuti:t.tempo_minuti,
+      descrizione:t.descrizione, pezzi_necessari,
+      passi:[
+        "Disponi tutti i pezzi necessari sul piano di lavoro.",
+        "Costruisci la base della figura unendo i pezzi principali.",
+        "Aggiungi i pezzi secondari per dare forma e dettaglio.",
+        "Controlla la simmetria e la stabilità della costruzione.",
+        "Rifinisci i dettagli finali e ammira il risultato!"
+      ],
+      suggerimento:t.suggerimento
+    });
+  }
+  if(results.length===0) {
+    state.error="Nessuna idea trovata con questi filtri. Prova a cambiare i filtri o aggiungi più piastrelle!";
+  } else {
+    state.ideas=results; state.tab="risultati";
+  }
+  state.loading=false; render();
+}
+
+function renderInventarioTab() {
+  const rows = TILE_TYPES.map(tile => {
+    const qty = state.inventory[tile.id];
+    const active = qty > 0;
+    return `<div class="tile-row" style="border-color:${active?tile.color+"88":"transparent"}">
+      ${tileIcon(tile,38)}
+      <div class="tile-info">
+        <div class="tile-name">${tile.label}</div>
+        ${active?`<div class="tile-count-label" style="color:${tile.color}">${qty} pezzi</div>`:""}
+      </div>
+      <div class="tile-controls">
+        <button class="ctrl-btn" style="background:${qty>0?"#f0f0f0":"#fafafa"};color:${qty>0?"#2d3436":"#dfe6e9"};cursor:${qty>0?"pointer":"not-allowed"}" onclick="updateInv('${tile.id}',-1)">−</button>
+        <input class="ctrl-val" type="number" min="0" max="99" value="${qty}" style="color:${active?tile.color:"#b2bec3"}" oninput="updateInvDirect('${tile.id}',this.value)">
+        <button class="ctrl-btn" style="background:${tile.color};color:white" onclick="updateInv('${tile.id}',1)">+</button>
+      </div>
+    </div>`;
+  }).join("");
+  const total = totalTiles();
+  return `
+    <div class="section-header">
+      <span class="section-title">Le mie piastrelle</span>
+      <span class="badge">Totale: ${total}</span>
+    </div>
+    ${rows}
+    ${total>0?`<button class="next-btn" onclick="setTab('genera')">Avanti → Configura e Genera ✨</button>`:""}
+  `;
+}
+
+function renderConfiguraTab() {
+  const inv = TILE_TYPES.filter(t=>state.inventory[t.id]>0);
+  const total = totalTiles();
+  const invSummary = total===0
+    ? `<p style="color:#fc5c65;font-size:13px;font-weight:600">⚠️ Vai prima all'inventario e aggiungi le tue piastrelle!</p>`
+    : `<div class="inv-chips">${inv.map(tile=>`<span class="inv-chip" style="background:${tile.bg};border:1px solid ${tile.color}44">${tileIcon(tile,12)} ${tile.short}: ${state.inventory[tile.id]}</span>`).join("")}</div>`;
+  const filterGroup = (label,key,options,color) => `
+    <div class="filter-card">
+      <div class="filter-label">${label}</div>
+      <div class="filter-options">
+        ${options.map(opt=>`<button class="filter-btn" style="${state.filters[key]===opt?`border-color:${color};background:${color};color:white`:""}" onclick="setFilter('${key}','${opt}')">${opt}</button>`).join("")}
+      </div>
+    </div>`;
+  const qLabel = n => {
+    const s = state.filters.quante===n?`border-color:#fd9644;background:#fd9644;color:white`:"";
+    return `<button class="filter-btn" style="${s}" onclick="setFilter('quante',${n})">${n}</button>`;
+  };
+  return `
+    <div class="section-title" style="margin-bottom:14px">Configura la ricerca</div>
+    <div class="inv-summary">
+      <div class="sub-label" style="margin-bottom:4px">Inventario attivo</div>
+      ${invSummary}
+    </div>
+    ${filterGroup("Difficoltà","difficolta",DIFFS,"#4b7bec")}
+    ${filterGroup("Categoria","categoria",CATS,"#a55eea")}
+    ${filterGroup("Età del bambino","eta",AGES,"#20bf6b")}
+    <div class="filter-card">
+      <div class="filter-label">Quante idee generare: <span style="color:#fd9644;font-weight:900">${state.filters.quante}</span></div>
+      <div class="filter-options">${COUNTS.map(qLabel).join("")}</div>
+    </div>
+    ${state.error?`<div class="error-box">⚠️ ${state.error}</div>`:""}
+    <button class="gen-btn" ${state.loading?"disabled":""} onclick="generate()"
+      style="background:${state.loading?"#b2bec3":"linear-gradient(135deg,#26de81,#20bf6b)"};${state.loading?"":"box-shadow:0 6px 20px rgba(32,191,107,0.35)"}">
+      ${state.loading?`<span class="loading-spinner"></span>Sto generando le idee...`:"🚀 Genera Idee di Costruzione!"}
+    </button>
+  `;
+}
+
+function renderIdeaCard(idea) {
+  const fav = isFav(idea);
+  const missing = hasMissing(idea);
+  const [diffLabel,diffColor] = diffInfo(idea.difficolta);
+  const pieces = idea.pezzi_necessari
+    ? Object.entries(idea.pezzi_necessari).map(([k,n])=>{
+        const tile = TILE_TYPES.find(t=>t.id===k);
+        if(!tile) return "";
+        const ok = (state.inventory[k]||0)>=n;
+        return `<span class="piece-chip" style="background:${ok?tile.bg:"#ffe5e7"};border-color:${ok?tile.color+"55":"#fc5c6555"};color:${ok?"#2d3436":"#fc5c65"}">${tileIcon(tile,12)} ${tile.short}: ${n}</span>`;
+      }).join("")
+    : "";
+  const encoded = encodeURIComponent(JSON.stringify(idea));
+  return `<div class="idea-card" style="border-color:${fav?"#FDC935":"transparent"}" onclick="selectIdea('${encoded}')">
+    <div class="idea-top">
+      <span class="idea-emoji">${idea.emoji||"🔧"}</span>
+      <div class="idea-badges">
+        ${missing?`<span class="missing-badge">⚠️ Pezzi mancanti</span>`:""}
+        <span class="diff-badge" style="background:${diffColor}22;color:${diffColor}">${diffLabel}</span>
+        <button class="fav-btn" onclick="event.stopPropagation();toggleFavById('${encoded}')">${fav?"⭐":"☆"}</button>
+      </div>
+    </div>
+    <div class="idea-name">${idea.nome}</div>
+    <div class="idea-meta">
+      <span class="meta-chip">${idea.categoria}</span>
+      <span class="meta-chip">⏱ ${idea.tempo_minuti} min</span>
+    </div>
+    <p class="idea-desc">${idea.descrizione}</p>
+    ${pieces?`<div class="pieces-row">${pieces}</div>`:""}
+    <p class="hint">Tocca per le istruzioni →</p>
+  </div>`;
+}
+
+function renderRisultatiTab() {
+  if(state.ideas.length===0) return `
+    <div class="empty-state">
+      <div class="empty-emoji">🎯</div>
+      <p class="empty-text">Nessuna idea ancora! Vai in "Configura" e premi Genera.</p>
+      <button onclick="setTab('genera')" style="padding:11px 22px;background:#4b7bec;border:none;border-radius:18px;color:white;font-weight:700;cursor:pointer;font-size:14px;font-family:Nunito,sans-serif">Vai a Configura ⚙️</button>
+    </div>`;
+  return `
+    <div class="section-header">
+      <span class="section-title">${state.ideas.length} costruzioni trovate</span>
+      <button onclick="setTab('genera')" style="padding:6px 14px;border-radius:20px;background:#f0f0f0;border:none;cursor:pointer;font-weight:700;font-size:12px;color:#636e72;font-family:Nunito,sans-serif">↺ Rigenera</button>
+    </div>
+    ${state.ideas.map(i=>renderIdeaCard(i)).join("")}
+  `;
+}
+
+function renderPreferiti() {
+  if(state.favs.length===0) return `
+    <div class="empty-state">
+      <div class="empty-emoji">⭐</div>
+      <p class="empty-text">Nessun preferito ancora. Genera delle idee e salvale!</p>
+    </div>`;
+  return `
+    <div class="section-header">
+      <span class="section-title">I miei preferiti (${state.favs.length})</span>
+    </div>
+    ${state.favs.map(i=>renderIdeaCard(i)).join("")}
+  `;
+}
+
+function renderModal() {
+  if(!state.selected) return "";
+  const idea = state.selected;
+  const fav = isFav(idea);
+  const [diffLabel,diffColor] = diffInfo(idea.difficolta);
+  const piecesDetail = idea.pezzi_necessari
+    ? Object.entries(idea.pezzi_necessari).map(([k,n])=>{
+        const tile = TILE_TYPES.find(t=>t.id===k);
+        if(!tile) return "";
+        const avail = state.inventory[k]||0;
+        const ok = avail>=n;
+        return `<div class="piece-detail" style="background:${ok?tile.bg:"#ffe5e7"};border-color:${ok?tile.color:"#fc5c65"}">
+          ${tileIcon(tile,22)}
+          <div>
+            <div class="piece-detail-name" style="color:${ok?"#2d3436":"#fc5c65"}">${tile.label}</div>
+            <div class="piece-detail-qty" style="color:${ok?"#636e72":"#fc5c65"}">Serve: <b>${n}</b> · Hai: <b>${avail}</b> ${ok?"✓":"✗"}</div>
+          </div>
+        </div>`;
+      }).join("")
+    : "";
+  const steps = (idea.passi||[]).map((step,i)=>`
+    <div class="step-item">
+      <div class="step-num">${i+1}</div>
+      <p class="step-text">${step.replace(/^Step\s*\d+[:\-\s]+/i,"")}</p>
+    </div>`).join("");
+  const encoded = encodeURIComponent(JSON.stringify(idea));
+  return `<div class="modal-overlay" onclick="closeModal()">
+    <div class="modal-box" onclick="event.stopPropagation()">
+      <div class="modal-header">
+        <span style="font-size:50px">${idea.emoji||"🔧"}</span>
+        <button class="close-btn" onclick="closeModal()">×</button>
+      </div>
+      <div class="modal-title">${idea.nome}</div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px">
+        <span class="diff-badge" style="background:${diffColor}22;color:${diffColor};font-size:12px;padding:4px 12px;border-radius:20px">${diffLabel}</span>
+        <span class="meta-chip" style="font-size:12px;padding:4px 12px">${idea.categoria}</span>
+        <span class="meta-chip" style="font-size:12px;padding:4px 12px">⏱ ${idea.tempo_minuti} min</span>
+      </div>
+      <p class="modal-desc">${idea.descrizione}</p>
+      ${piecesDetail?`<div class="sub-label">Pezzi necessari</div><div class="pieces-grid">${piecesDetail}</div>`:""}
+      ${steps?`<div class="sub-label">Istruzioni passo per passo</div><div class="steps-list">${steps}</div>`:""}
+      ${idea.suggerimento?`<div class="tip-box">💡 <strong>Suggerimento:</strong> ${idea.suggerimento}</div>`:""}
+      <button class="save-btn" onclick="toggleFavById('${encoded}')"
+        style="background:${fav?"#FDC935":"white"};border:2px solid #FDC935;color:${fav?"white":"#2d3436"};font-family:Nunito,sans-serif">
+        ${fav?"⭐ Rimuovi dai preferiti":"☆ Salva nei preferiti"}
+      </button>
+    </div>
+  </div>`;
+}
+
+function render() {
+  const tabs = [
+    {id:"inventario", label:"📦 Inventario"},
+    {id:"genera",     label:"⚙️ Configura"},
+    {id:"risultati",  label:`🎯 Idee${state.ideas.length?` (${state.ideas.length})`:""}`},
+    {id:"preferiti",  label:`⭐ Preferiti${state.favs.length?` (${state.favs.length})`:""}`},
+  ];
+  let content="";
+  if(state.tab==="inventario") content=renderInventarioTab();
+  else if(state.tab==="genera")    content=renderConfiguraTab();
+  else if(state.tab==="risultati") content=renderRisultatiTab();
+  else if(state.tab==="preferiti") content=renderPreferiti();
+  document.getElementById("app").innerHTML = `
+    <div class="header">
+      <h1>🧲 MagnetiCrea</h1>
+      <p>Inserisci le tue piastrelle e scopri cosa costruire!</p>
+    </div>
+    <div class="tabs">
+      ${tabs.map(t=>`<button class="tab-btn ${state.tab===t.id?"active":""}" onclick="setTab('${t.id}')">${t.label}</button>`).join("")}
+    </div>
+    <div class="content">${content}</div>
+    ${renderModal()}
+  `;
+}
+
+window.setTab          = tab      => { state.tab=tab; render(); };
+window.updateInv       = (id,d)   => { state.inventory[id]=Math.max(0,(state.inventory[id]||0)+d); render(); };
+window.updateInvDirect = (id,val) => { const n=parseInt(val); if(!isNaN(n)&&n>=0){ state.inventory[id]=n; render(); } };
+window.setFilter       = (k,v)    => { state.filters[k]=(k==="quante"?parseInt(v):v); render(); };
+window.generate        = generate;
+window.selectIdea      = enc      => { try{ state.selected=JSON.parse(decodeURIComponent(enc)); render(); }catch(e){} };
+window.closeModal      = ()       => { state.selected=null; render(); };
+window.toggleFavById   = enc      => { try{ toggleFav(JSON.parse(decodeURIComponent(enc))); }catch(e){ console.error(e); } };
+
+loadFavs();
+render();
+</script>
+</body>
+</html>
