@@ -64,10 +64,6 @@ input[type=number].ctrl-val { -moz-appearance: textfield; }
 .piece-detail { display: flex; align-items: center; gap: 8px; border-radius: 12px; padding: 8px 12px; border: 2px solid; }
 .piece-detail-name { font-size: 12px; font-weight: 700; }
 .piece-detail-qty { font-size: 11px; }
-.steps-list { display: flex; flex-direction: column; gap: 10px; margin-bottom: 20px; }
-.step-item { display: flex; gap: 10px; align-items: flex-start; }
-.step-num { min-width: 28px; height: 28px; border-radius: 50%; background: linear-gradient(135deg, #4b7bec, #a55eea); color: white; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 800; flex-shrink: 0; }
-.step-text { font-size: 13px; color: #2d3436; line-height: 1.55; padding-top: 4px; }
 .tip-box { background: #fffbe6; border: 2px solid #ffd43b; border-radius: 12px; padding: 12px; margin-bottom: 18px; font-size: 13px; color: #555; line-height: 1.5; }
 .save-btn { width: 100%; padding: 13px; border-radius: 16px; font-size: 15px; font-weight: 800; cursor: pointer; }
 .empty-state { text-align: center; padding: 50px 20px; }
@@ -78,6 +74,26 @@ input[type=number].ctrl-val { -moz-appearance: textfield; }
 .missing-badge { font-size: 10px; background: #ffe5e7; color: #fc5c65; padding: 3px 8px; border-radius: 20px; font-weight: 700; }
 .loading-spinner { display: inline-block; width: 18px; height: 18px; border: 3px solid rgba(255,255,255,0.4); border-top-color: white; border-radius: 50%; animation: spin 0.8s linear infinite; margin-right: 8px; vertical-align: middle; }
 @keyframes spin { to { transform: rotate(360deg); } }
+
+/* === SVG STEP VIEWER === */
+.step-viewer { background: #f8f9ff; border-radius: 20px; padding: 16px; margin-bottom: 20px; }
+.step-svg-area { background: white; border-radius: 16px; width: 100%; height: 220px; display: flex; align-items: center; justify-content: center; margin-bottom: 14px; box-shadow: 0 2px 10px rgba(75,123,236,0.10); position: relative; overflow: hidden; }
+.step-svg-area svg { width: 200px; height: 200px; }
+.step-nav { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.step-nav-btn { width: 44px; height: 44px; border-radius: 50%; border: none; cursor: pointer; font-size: 22px; font-weight: 900; display: flex; align-items: center; justify-content: center; transition: all 0.15s; flex-shrink: 0; }
+.step-nav-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+.step-nav-btn.prev { background: #f0f0f0; color: #2d3436; }
+.step-nav-btn.next { background: linear-gradient(135deg,#4b7bec,#a55eea); color: white; }
+.step-info { flex: 1; text-align: center; }
+.step-counter { font-size: 11px; font-weight: 700; color: #b2bec3; margin-bottom: 4px; }
+.step-desc { font-size: 14px; font-weight: 700; color: #2d3436; line-height: 1.4; }
+.step-piece-label { font-size: 12px; color: #636e72; margin-top: 4px; }
+.step-dots { display: flex; justify-content: center; gap: 6px; margin-top: 12px; }
+.step-dot { width: 8px; height: 8px; border-radius: 50%; background: #dfe6e9; transition: all 0.2s; }
+.step-dot.active { background: #4b7bec; transform: scale(1.3); }
+.step-dot.done { background: #b2bec3; }
+@keyframes popIn { 0%{transform:scale(0) rotate(-20deg);opacity:0} 70%{transform:scale(1.15) rotate(4deg);opacity:1} 100%{transform:scale(1) rotate(0deg);opacity:1} }
+.piece-anim { animation: popIn 0.4s cubic-bezier(.34,1.56,.64,1) both; }
 </style>
 </head>
 <body>
@@ -120,9 +136,96 @@ var TEMPLATES = [
   { nome:"Prisma 3D",       is3d:true,  emoji:"\uD83D\uDD37", categoria:"Forme",      difficolta:2, tempo_minuti:18, descrizione:"Un prisma triangolare 3D, forma geometrica base molto versatile.",            suggerimento:"Due triangoli paralleli come basi, tre quadrati come facce laterali.",  pezzi:[["triangolo_equilatero",2],["quadrato_grande",3]] },
 ];
 
-// Mappa globale id -> oggetto idea, per evitare onclick con JSON
+// Posizioni SVG per ogni tipo di pezzo nella scena (cx, cy, scala, rotazione)
+// Ogni template ha una lista di "scene": una per ogni step, con i pezzi visibili fino a quel punto
+var SCENE_LAYOUTS = {
+  "quadrato_grande":            [{cx:100,cy:100,s:1.6,r:0},{cx:100,cy:100,s:1.6,r:0}],
+  "quadrato_piccolo":           [{cx:100,cy:100,s:1.1,r:0},{cx:100,cy:100,s:1.1,r:0}],
+  "triangolo_equilatero":       [{cx:100,cy:100,s:1.4,r:0},{cx:100,cy:100,s:1.4,r:0}],
+  "triangolo_isoscele_grande":  [{cx:100,cy:100,s:1.5,r:0},{cx:100,cy:100,s:1.5,r:0}],
+  "triangolo_isoscele_piccolo": [{cx:100,cy:100,s:1.1,r:0},{cx:100,cy:100,s:1.1,r:0}],
+  "triangolo_rettangolo":       [{cx:100,cy:100,s:1.4,r:0},{cx:100,cy:100,s:1.4,r:0}],
+  "rombo":                      [{cx:100,cy:100,s:1.4,r:0},{cx:100,cy:100,s:1.4,r:0}],
+  "pentagono":                  [{cx:100,cy:100,s:1.4,r:0},{cx:100,cy:100,s:1.4,r:0}],
+  "esagono":                    [{cx:100,cy:100,s:1.5,r:0},{cx:100,cy:100,s:1.5,r:0}],
+};
+
+// Genera steps visivi per ogni idea: ogni step mostra i pezzi aggiunti fino a quel punto
+// con posizioni distribuite sulla scena SVG 200x200
+function buildVisualSteps(idea) {
+  var pezzi = idea.pezzi_necessari ? Object.entries(idea.pezzi_necessari) : [];
+  // Genera lista piatta di tutti i pezzi (ripetuti per quantita')
+  var allPieces = [];
+  pezzi.forEach(function(e){
+    var k=e[0], n=e[1];
+    for(var i=0;i<n;i++) allPieces.push(k);
+  });
+
+  // Posizioni predefinite ben distribuite sulla canvas 200x200
+  var positions = [
+    {x:100,y:100},{x:55,y:75},{x:145,y:75},{x:55,y:130},{x:145,y:130},
+    {x:100,y:45},{x:100,y:160},{x:30,y:100},{x:170,y:100}
+  ];
+  // Rotazioni estetiche per varietà
+  var rotations = [0,15,-15,30,-30,45,-45,20,-20];
+
+  // Costruiamo gli step: step 1 = 1 pezzo, step 2 = 2 pezzi, ...
+  // L'ultimo step e' anche quello testuale "Ammira il risultato"
+  var passi = idea.passi || [];
+  var steps = [];
+
+  // Step iniziale: sfondo vuoto + messaggio "Prepara i pezzi"
+  steps.push({ pieces: [], label: passi[0] || "Prepara i pezzi sul tavolo!", pieceLabel: "" });
+
+  // Step intermedi: aggiungi un pezzo alla volta
+  var shown = [];
+  allPieces.forEach(function(pid, i) {
+    shown = shown.slice();
+    shown.push({ id: pid, pos: positions[i % positions.length], rot: rotations[i % rotations.length] });
+    var label = passi[i+1] || ("Aggiungi il pezzo " + (i+1));
+    var tile = TILE_TYPES.find(function(t){ return t.id===pid; });
+    steps.push({ pieces: shown.slice(), label: label, pieceLabel: tile ? ("+ " + tile.label) : "" });
+  });
+
+  // Step finale
+  steps.push({ pieces: shown.slice(), label: passi[passi.length-1] || "Fantastico! Hai finito!", pieceLabel: "\uD83C\uDF89 Completato!" });
+
+  return steps;
+}
+
+function renderStepSVG(pieces, animIdx) {
+  var svgParts = [];
+  // Griglia di sfondo leggera
+  svgParts.push('<rect width="200" height="200" fill="#f8f9ff" rx="12"/>');
+  svgParts.push('<line x1="100" y1="10" x2="100" y2="190" stroke="#e0e7ff" stroke-width="1"/>');
+  svgParts.push('<line x1="10" y1="100" x2="190" y2="100" stroke="#e0e7ff" stroke-width="1"/>');
+
+  if(pieces.length === 0) {
+    svgParts.push('<text x="100" y="108" text-anchor="middle" font-size="44" opacity="0.15">\uD83E\uDDF2</text>');
+  }
+
+  pieces.forEach(function(p, i) {
+    var tile = TILE_TYPES.find(function(t){ return t.id===p.id; });
+    if(!tile) return;
+    var cx = p.pos.x, cy = p.pos.y, rot = p.rot;
+    var s = 1.3;
+    var isNew = (i === animIdx);
+    var cls = isNew ? ' class="piece-anim"' : '';
+    svgParts.push(
+      '<g transform="translate('+cx+','+cy+') rotate('+rot+') scale('+s+')"'+cls+'>' +
+        '<g transform="translate(-25,-25)">' +
+          '<path d="'+tile.path+'" fill="'+tile.color+'" stroke="rgba(255,255,255,0.9)" stroke-width="2.5" stroke-linejoin="round" opacity="'+(isNew?'1':'0.85')+'"/>' +
+          (isNew ? '<path d="'+tile.path+'" fill="none" stroke="'+tile.color+'" stroke-width="4" stroke-linejoin="round" opacity="0.4"/>' : '') +
+        '</g>' +
+      '</g>'
+    );
+  });
+  return '<svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">' + svgParts.join("") + '</svg>';
+}
+
 var _ideaMap = {};
 var _ideaCounter = 0;
+var _stepState = {}; // ideaId -> stepIndex corrente
 
 function storeIdea(idea) {
   var id = "idea_" + (_ideaCounter++);
@@ -132,8 +235,8 @@ function storeIdea(idea) {
 
 function tileIcon(tile, size) {
   size = size || 32;
-  return '<svg width="' + size + '" height="' + size + '" viewBox="0 0 50 50" style="flex-shrink:0;filter:drop-shadow(1px 2px 2px ' + tile.color + '44)">' +
-    '<path d="' + tile.path + '" fill="' + tile.color + '" stroke="rgba(255,255,255,0.85)" stroke-width="2.5" stroke-linejoin="round"/>' +
+  return '<svg width="'+size+'" height="'+size+'" viewBox="0 0 50 50" style="flex-shrink:0;filter:drop-shadow(1px 2px 2px '+tile.color+'44)">' +
+    '<path d="'+tile.path+'" fill="'+tile.color+'" stroke="rgba(255,255,255,0.85)" stroke-width="2.5" stroke-linejoin="round"/>' +
     '</svg>';
 }
 
@@ -172,253 +275,249 @@ function generate() {
   if(totalTiles()===0) { state.error="Aggiungi prima le piastrelle all'inventario!"; render(); return; }
   state.loading=true; state.error=null; render();
   setTimeout(function() {
-    var categoria = state.filters.categoria;
-    var difficolta = state.filters.difficolta;
-    var quante = state.filters.quante;
-    var solo3d = state.filters.solo3d;
-    var results = [];
-    for(var i=0; i<TEMPLATES.length; i++) {
-      if(results.length >= quante) break;
-      var t = TEMPLATES[i];
+    var categoria=state.filters.categoria, difficolta=state.filters.difficolta;
+    var quante=state.filters.quante, solo3d=state.filters.solo3d;
+    var results=[];
+    for(var i=0;i<TEMPLATES.length;i++){
+      if(results.length>=quante) break;
+      var t=TEMPLATES[i];
       if(solo3d && !t.is3d) continue;
-      if(categoria !== "Tutti" && categoria !== t.categoria) continue;
-      if(difficolta !== "Tutti") {
-        var d = difficolta==="Facile"?1:difficolta==="Medio"?2:3;
-        if(t.difficolta !== d) continue;
+      if(categoria!=="Tutti" && categoria!==t.categoria) continue;
+      if(difficolta!=="Tutti"){
+        var d=difficolta==="Facile"?1:difficolta==="Medio"?2:3;
+        if(t.difficolta!==d) continue;
       }
-      var pezzi_necessari = {};
-      var feasible = true;
-      for(var j=0; j<t.pezzi.length; j++) {
-        var k = t.pezzi[j][0], n = t.pezzi[j][1];
-        if((state.inventory[k]||0) < n) { feasible=false; break; }
+      var pezzi_necessari={}, feasible=true;
+      for(var j=0;j<t.pezzi.length;j++){
+        var k=t.pezzi[j][0], n=t.pezzi[j][1];
+        if((state.inventory[k]||0)<n){ feasible=false; break; }
         pezzi_necessari[k]=n;
       }
       if(!feasible) continue;
-      var passi3d = [
-        "Disponi tutti i pezzi necessari sul piano di lavoro.",
-        "Costruisci la base della struttura tridimensionale.",
-        "Assembla le facce laterali collegandole magneticamente.",
-        "Inclina le pareti per dare profondita' alla forma.",
-        "Chiudi la struttura con la faccia superiore o l'apice.",
-        "Verifica la solidita' magnetica di ogni giunzione.",
-        "Ammira la costruzione 3D completata da ogni angolazione!"
-      ];
-      var passi2d = [
-        "Disponi tutti i pezzi necessari sul piano di lavoro.",
-        "Costruisci la base della figura unendo i pezzi principali.",
-        "Aggiungi i pezzi secondari per dare forma e dettaglio.",
-        "Controlla la simmetria e la stabilita' della costruzione.",
-        "Rifinisci i dettagli finali e ammira il risultato!"
-      ];
+      var passi3d=["Prepara tutti i pezzi sul tavolo davanti a te!","Metti la base piatta sul tavolo.","Attacca i lati uno per uno con i magneti.","Inclina le pareti verso l'alto per formare la 3D.","Chiudi la struttura con il pezzo finale in cima.","Controlla che tutti i magneti siano agganciati bene.","Evviva! La tua costruzione 3D e' pronta!"];
+      var passi2d=["Prepara tutti i pezzi sul tavolo davanti a te!","Metti il pezzo piu' grande al centro.","Aggiungi i pezzi intorno uno alla volta.","Controlla che la forma sia simmetrica.","Rifinisci i dettagli finali e ammira il risultato!"];
       results.push({
         nome:t.nome, categoria:t.categoria, emoji:t.emoji, is3d:t.is3d,
         difficolta:t.difficolta, tempo_minuti:t.tempo_minuti,
         descrizione:t.descrizione, pezzi_necessari:pezzi_necessari,
-        passi: t.is3d ? passi3d : passi2d,
-        suggerimento:t.suggerimento
+        passi:t.is3d?passi3d:passi2d, suggerimento:t.suggerimento
       });
     }
-    if(results.length===0) {
+    if(results.length===0){
       state.error="Nessuna idea trovata. Prova a cambiare i filtri o aggiungi piu' piastrelle!";
     } else {
       state.ideas=results; state.tab="risultati";
     }
     state.loading=false; render();
-  }, 400);
+  },400);
 }
 
 function renderInventarioTab() {
-  var rows = TILE_TYPES.map(function(tile) {
-    var qty = state.inventory[tile.id];
-    var active = qty > 0;
-    return '<div class="tile-row" data-tile="' + tile.id + '" style="border-color:' + (active ? tile.color+"88" : "transparent") + '">' +
+  var rows=TILE_TYPES.map(function(tile){
+    var qty=state.inventory[tile.id], active=qty>0;
+    return '<div class="tile-row" data-tile="'+tile.id+'" style="border-color:'+(active?tile.color+"88":"transparent")+'">' +
       tileIcon(tile,38) +
-      '<div class="tile-info">' +
-        '<div class="tile-name">' + tile.label + '</div>' +
-        '<div class="tile-count-label" style="color:' + tile.color + ';visibility:' + (active?"visible":"hidden") + '">' + qty + ' pezzi</div>' +
-      '</div>' +
+      '<div class="tile-info"><div class="tile-name">'+tile.label+'</div>' +
+      '<div class="tile-count-label" style="color:'+tile.color+';visibility:'+(active?"visible":"hidden")+'">'+qty+' pezzi</div></div>' +
       '<div class="tile-controls">' +
-        '<button class="ctrl-btn" style="background:' + (qty>0?"#f0f0f0":"#fafafa") + ';color:' + (qty>0?"#2d3436":"#dfe6e9") + ';cursor:' + (qty>0?"pointer":"not-allowed") + '" onclick="updateInv(\'' + tile.id + '\',-1)">\u2212</button>' +
-        '<input class="ctrl-val" type="number" min="0" max="99" value="' + qty + '" style="color:' + (active?tile.color:"#b2bec3") + '" onchange="updateInvDirect(\'' + tile.id + '\',this.value)" oninput="updateInvDirect(\'' + tile.id + '\',this.value)">' +
-        '<button class="ctrl-btn" style="background:' + tile.color + ';color:white" onclick="updateInv(\'' + tile.id + '\',1)">+</button>' +
+        '<button class="ctrl-btn" style="background:'+(qty>0?"#f0f0f0":"#fafafa")+';color:'+(qty>0?"#2d3436":"#dfe6e9")+';cursor:'+(qty>0?"pointer":"not-allowed")+'" onclick="updateInv(\''+tile.id+'\',-1)">\u2212</button>' +
+        '<input class="ctrl-val" type="number" min="0" max="99" value="'+qty+'" style="color:'+(active?tile.color:"#b2bec3")+'" onchange="updateInvDirect(\''+tile.id+'\',this.value)" oninput="updateInvDirect(\''+tile.id+'\',this.value)">' +
+        '<button class="ctrl-btn" style="background:'+tile.color+';color:white" onclick="updateInv(\''+tile.id+'\',1)">+</button>' +
       '</div></div>';
   }).join("");
-  var total = totalTiles();
-  return '<div class="section-header"><span class="section-title">Le mie piastrelle</span><span class="badge" id="total-badge">Totale: ' + total + '</span></div>' +
-    rows +
-    (total>0 ? '<button class="next-btn" onclick="setTab(\'genera\')">Avanti \u2192 Configura e Genera \u2728</button>' : "");
+  var total=totalTiles();
+  return '<div class="section-header"><span class="section-title">Le mie piastrelle</span><span class="badge" id="total-badge">Totale: '+total+'</span></div>' +
+    rows + (total>0?'<button class="next-btn" onclick="setTab(\'genera\')">Avanti \u2192 Configura e Genera \u2728</button>':"");
 }
 
 function renderConfiguraTab() {
-  var inv = TILE_TYPES.filter(function(t){ return state.inventory[t.id]>0; });
-  var total = totalTiles();
-  var invSummary = total===0
-    ? '<p style="color:#fc5c65;font-size:13px;font-weight:600">\u26A0\uFE0F Vai prima all\'inventario e aggiungi le tue piastrelle!</p>'
-    : '<div class="inv-chips">' + inv.map(function(tile){ return '<span class="inv-chip" style="background:' + tile.bg + ';border:1px solid ' + tile.color + '44">' + tileIcon(tile,12) + ' ' + tile.short + ': ' + state.inventory[tile.id] + '</span>'; }).join("") + '</div>';
-  function filterGroup(label,key,options,color) {
-    return '<div class="filter-card"><div class="filter-label">' + label + '</div><div class="filter-options">' +
-      options.map(function(opt){ return '<button class="filter-btn" style="' + (state.filters[key]===opt ? "border-color:"+color+";background:"+color+";color:white" : "") + '" onclick="setFilter(\'' + key + '\',\'' + opt + '\')">' + opt + '</button>'; }).join("") +
+  var inv=TILE_TYPES.filter(function(t){ return state.inventory[t.id]>0; });
+  var total=totalTiles();
+  var invSummary=total===0
+    ?'<p style="color:#fc5c65;font-size:13px;font-weight:600">\u26A0\uFE0F Vai prima all\'inventario e aggiungi le tue piastrelle!</p>'
+    :'<div class="inv-chips">'+inv.map(function(tile){ return '<span class="inv-chip" style="background:'+tile.bg+';border:1px solid '+tile.color+'44">'+tileIcon(tile,12)+' '+tile.short+': '+state.inventory[tile.id]+'</span>'; }).join("")+'</div>';
+  function filterGroup(label,key,options,color){
+    return '<div class="filter-card"><div class="filter-label">'+label+'</div><div class="filter-options">'+
+      options.map(function(opt){ return '<button class="filter-btn" style="'+(state.filters[key]===opt?"border-color:"+color+";background:"+color+";color:white":"")+'" onclick="setFilter(\''+key+'\',\''+opt+'\')">'+opt+'</button>'; }).join("")+
       '</div></div>';
   }
-  function qLabel(n) {
-    var s = state.filters.quante===n ? "border-color:#fd9644;background:#fd9644;color:white" : "";
-    return '<button class="filter-btn" style="' + s + '" onclick="setFilter(\'quante\',' + n + ')">' + n + '</button>';
+  function qLabel(n){
+    var s=state.filters.quante===n?"border-color:#fd9644;background:#fd9644;color:white":"";
+    return '<button class="filter-btn" style="'+s+'" onclick="setFilter(\'quante\','+n+')">'+n+'</button>';
   }
-  var s3d = state.filters.solo3d;
+  var s3d=state.filters.solo3d;
   return '<div class="section-title" style="margin-bottom:14px">Configura la ricerca</div>' +
-    '<div class="inv-summary"><div class="sub-label" style="margin-bottom:4px">Inventario attivo</div>' + invSummary + '</div>' +
+    '<div class="inv-summary"><div class="sub-label" style="margin-bottom:4px">Inventario attivo</div>'+invSummary+'</div>' +
     filterGroup("Difficolt\u00E0","difficolta",DIFFS,"#4b7bec") +
     filterGroup("Categoria","categoria",CATS,"#a55eea") +
     filterGroup("Et\u00E0 del bambino","eta",AGES,"#20bf6b") +
-    '<div class="filter-card"><div class="filter-label">Quante idee generare: <span style="color:#fd9644;font-weight:900">' + state.filters.quante + '</span></div><div class="filter-options">' + COUNTS.map(qLabel).join("") + '</div></div>' +
+    '<div class="filter-card"><div class="filter-label">Quante idee generare: <span style="color:#fd9644;font-weight:900">'+state.filters.quante+'</span></div><div class="filter-options">'+COUNTS.map(qLabel).join("")+'</div></div>' +
     '<div class="filter-card"><div class="filter-label">Tipo costruzione</div><div class="filter-options">' +
-      '<button class="filter-btn" style="' + (!s3d?"border-color:#4b7bec;background:#4b7bec;color:white":"") + '" onclick="setFilter(\'solo3d\',false)">\uD83D\uDDC2 Tutte (2D + 3D)</button>' +
-      '<button class="filter-btn" style="' + (s3d?"border-color:#a55eea;background:#a55eea;color:white":"") + '" onclick="setFilter(\'solo3d\',true)">\uD83E\uDDCA Solo 3D</button>' +
+      '<button class="filter-btn" style="'+(!s3d?"border-color:#4b7bec;background:#4b7bec;color:white":"")+'" onclick="setFilter(\'solo3d\',false)">\uD83D\uDDC2 Tutte (2D + 3D)</button>' +
+      '<button class="filter-btn" style="'+(s3d?"border-color:#a55eea;background:#a55eea;color:white":"")+'" onclick="setFilter(\'solo3d\',true)">\uD83E\uDDCA Solo 3D</button>' +
     '</div></div>' +
-    (state.error ? '<div class="error-box">\u26A0\uFE0F ' + state.error + '</div>' : "") +
-    '<button class="gen-btn" ' + (state.loading?"disabled":"") + ' onclick="generate()" style="background:' + (state.loading?"#b2bec3":"linear-gradient(135deg,#26de81,#20bf6b)") + ';' + (state.loading?"":"box-shadow:0 6px 20px rgba(32,191,107,0.35)") + '">' +
-    (state.loading ? '<span class="loading-spinner"></span>Sto generando le idee...' : '\uD83D\uDE80 Genera Idee di Costruzione!') + '</button>';
+    (state.error?'<div class="error-box">\u26A0\uFE0F '+state.error+'</div>':"") +
+    '<button class="gen-btn" '+(state.loading?"disabled":"")+' onclick="generate()" style="background:'+(state.loading?"#b2bec3":"linear-gradient(135deg,#26de81,#20bf6b)")+';'+(state.loading?"":"box-shadow:0 6px 20px rgba(32,191,107,0.35)")+'">'+
+    (state.loading?'<span class="loading-spinner"></span>Sto generando le idee...':'\uD83D\uDE80 Genera Idee di Costruzione!')+'</button>';
 }
 
 function renderIdeaCard(idea) {
-  var fav = isFav(idea);
-  var missing = hasMissing(idea);
-  var di = diffInfo(idea.difficolta);
-  var diffLabel = di[0], diffColor = di[1];
-  var pieces = idea.pezzi_necessari
-    ? Object.entries(idea.pezzi_necessari).map(function(e){
-        var k=e[0], n=e[1];
-        var tile = TILE_TYPES.find(function(t){ return t.id===k; });
+  var fav=isFav(idea), missing=hasMissing(idea);
+  var di=diffInfo(idea.difficolta), diffLabel=di[0], diffColor=di[1];
+  var pieces=idea.pezzi_necessari
+    ?Object.entries(idea.pezzi_necessari).map(function(e){
+        var k=e[0],n=e[1], tile=TILE_TYPES.find(function(t){ return t.id===k; });
         if(!tile) return "";
-        var ok = (state.inventory[k]||0)>=n;
-        return '<span class="piece-chip" style="background:' + (ok?tile.bg:"#ffe5e7") + ';border-color:' + (ok?tile.color+"55":"#fc5c6555") + ';color:' + (ok?"#2d3436":"#fc5c65") + '">' + tileIcon(tile,12) + ' ' + tile.short + ': ' + n + '</span>';
+        var ok=(state.inventory[k]||0)>=n;
+        return '<span class="piece-chip" style="background:'+(ok?tile.bg:"#ffe5e7")+';border-color:'+(ok?tile.color+"55":"#fc5c6555")+';color:'+(ok?"#2d3436":"#fc5c65")+'">'+tileIcon(tile,12)+' '+tile.short+': '+n+'</span>';
       }).join("")
-    : "";
-  // Salva l'idea nella mappa e usa l'id nel click
-  var ideaId = storeIdea(idea);
-  return '<div class="idea-card" style="border-color:' + (fav?"#FDC935":"transparent") + '" onclick="selectIdeaById(\'' + ideaId + '\')">' +
-    '<div class="idea-top">' +
-      '<span class="idea-emoji">' + (idea.emoji||"\uD83D\uDD27") + '</span>' +
-      '<div class="idea-badges">' +
-        (idea.is3d ? '<span class="badge-3d">3D</span>' : "") +
-        (missing ? '<span class="missing-badge">\u26A0\uFE0F Pezzi mancanti</span>' : "") +
-        '<span class="diff-badge" style="background:' + diffColor + '22;color:' + diffColor + '">' + diffLabel + '</span>' +
-        '<button class="fav-btn" onclick="event.stopPropagation();toggleFavById(\'' + ideaId + '\')">' + (fav?"\u2B50":"\u2606") + '</button>' +
-      '</div>' +
-    '</div>' +
-    '<div class="idea-name">' + idea.nome + '</div>' +
-    '<div class="idea-meta"><span class="meta-chip">' + idea.categoria + '</span><span class="meta-chip">\u23F1 ' + idea.tempo_minuti + ' min</span></div>' +
-    '<p class="idea-desc">' + idea.descrizione + '</p>' +
-    (pieces ? '<div class="pieces-row">' + pieces + '</div>' : "") +
-    '<p class="hint">Tocca per le istruzioni \u2192</p>' +
-    '</div>';
+    :"";
+  var ideaId=storeIdea(idea);
+  return '<div class="idea-card" style="border-color:'+(fav?"#FDC935":"transparent")+'" onclick="selectIdeaById(\''+ideaId+'\')">' +
+    '<div class="idea-top"><span class="idea-emoji">'+(idea.emoji||"\uD83D\uDD27")+'</span>' +
+    '<div class="idea-badges">'+(idea.is3d?'<span class="badge-3d">3D</span>':"")+(missing?'<span class="missing-badge">\u26A0\uFE0F Pezzi mancanti</span>':"")+'<span class="diff-badge" style="background:'+diffColor+'22;color:'+diffColor+'">'+diffLabel+'</span><button class="fav-btn" onclick="event.stopPropagation();toggleFavById(\''+ideaId+'\')">'+(fav?"\u2B50":"\u2606")+'</button></div></div>' +
+    '<div class="idea-name">'+idea.nome+'</div>' +
+    '<div class="idea-meta"><span class="meta-chip">'+idea.categoria+'</span><span class="meta-chip">\u23F1 '+idea.tempo_minuti+' min</span></div>' +
+    '<p class="idea-desc">'+idea.descrizione+'</p>' +
+    (pieces?'<div class="pieces-row">'+pieces+'</div>':"") +
+    '<p class="hint">Tocca per le istruzioni \u2192</p></div>';
 }
 
 function renderRisultatiTab() {
   if(state.ideas.length===0) return '<div class="empty-state"><div class="empty-emoji">\uD83C\uDFAF</div><p class="empty-text">Nessuna idea ancora! Vai in "Configura" e premi Genera.</p><button onclick="setTab(\'genera\')" style="padding:11px 22px;background:#4b7bec;border:none;border-radius:18px;color:white;font-weight:700;cursor:pointer;font-size:14px;font-family:Nunito,sans-serif">Vai a Configura \u2699\uFE0F</button></div>';
-  return '<div class="section-header"><span class="section-title">' + state.ideas.length + ' costruzioni trovate</span><button onclick="setTab(\'genera\')" style="padding:6px 14px;border-radius:20px;background:#f0f0f0;border:none;cursor:pointer;font-weight:700;font-size:12px;color:#636e72;font-family:Nunito,sans-serif">\u21BA Rigenera</button></div>' +
+  return '<div class="section-header"><span class="section-title">'+state.ideas.length+' costruzioni trovate</span><button onclick="setTab(\'genera\')" style="padding:6px 14px;border-radius:20px;background:#f0f0f0;border:none;cursor:pointer;font-weight:700;font-size:12px;color:#636e72;font-family:Nunito,sans-serif">\u21BA Rigenera</button></div>' +
     state.ideas.map(function(i){ return renderIdeaCard(i); }).join("");
 }
 
 function renderPreferiti() {
   if(state.favs.length===0) return '<div class="empty-state"><div class="empty-emoji">\u2B50</div><p class="empty-text">Nessun preferito ancora. Genera delle idee e salvale!</p></div>';
-  return '<div class="section-header"><span class="section-title">I miei preferiti (' + state.favs.length + ')</span></div>' +
+  return '<div class="section-header"><span class="section-title">I miei preferiti ('+state.favs.length+')</span></div>' +
     state.favs.map(function(i){ return renderIdeaCard(i); }).join("");
+}
+
+function renderStepViewer(idea, modalIdeaId) {
+  var steps = buildVisualSteps(idea);
+  var currentStep = _stepState[modalIdeaId] || 0;
+  var step = steps[currentStep];
+  var total = steps.length;
+  // Indice del nuovo pezzo aggiunto in questo step
+  var animIdx = step.pieces.length - 1;
+  var svgHtml = renderStepSVG(step.pieces, animIdx);
+
+  var dots = steps.map(function(_,i){
+    var cls = i===currentStep?"active":(i<currentStep?"done":"");
+    return '<div class="step-dot '+cls+'"></div>';
+  }).join("");
+
+  return '<div class="step-viewer">' +
+    '<div class="sub-label" style="margin-bottom:10px">\uD83C\uDFA8 Costruisci passo per passo</div>' +
+    '<div class="step-svg-area">'+svgHtml+'</div>' +
+    '<div class="step-nav">' +
+      '<button class="step-nav-btn prev" onclick="stepNav(\''+modalIdeaId+'\','+(currentStep-1)+','+total+')" '+(currentStep===0?"disabled":"")+'>&#9664;</button>' +
+      '<div class="step-info">' +
+        '<div class="step-counter">Passo '+(currentStep+1)+' di '+total+'</div>' +
+        '<div class="step-desc">'+step.label+'</div>' +
+        (step.pieceLabel?'<div class="step-piece-label">'+step.pieceLabel+'</div>':"") +
+      '</div>' +
+      '<button class="step-nav-btn next" onclick="stepNav(\''+modalIdeaId+'\','+(currentStep+1)+','+total+')" '+(currentStep===total-1?"disabled":"")+'>&#9654;</button>' +
+    '</div>' +
+    '<div class="step-dots">'+dots+'</div>' +
+  '</div>';
 }
 
 function renderModal() {
   if(!state.selected) return "";
-  var idea = state.selected;
-  var fav = isFav(idea);
-  var di = diffInfo(idea.difficolta);
-  var diffLabel = di[0], diffColor = di[1];
-  var piecesDetail = idea.pezzi_necessari
-    ? Object.entries(idea.pezzi_necessari).map(function(e){
-        var k=e[0], n=e[1];
-        var tile = TILE_TYPES.find(function(t){ return t.id===k; });
+  var idea=state.selected;
+  var fav=isFav(idea);
+  var di=diffInfo(idea.difficolta), diffLabel=di[0], diffColor=di[1];
+  var piecesDetail=idea.pezzi_necessari
+    ?Object.entries(idea.pezzi_necessari).map(function(e){
+        var k=e[0],n=e[1], tile=TILE_TYPES.find(function(t){ return t.id===k; });
         if(!tile) return "";
-        var avail = state.inventory[k]||0;
-        var ok = avail>=n;
-        return '<div class="piece-detail" style="background:' + (ok?tile.bg:"#ffe5e7") + ';border-color:' + (ok?tile.color:"#fc5c65") + '">' +
-          tileIcon(tile,22) +
-          '<div><div class="piece-detail-name" style="color:' + (ok?"#2d3436":"#fc5c65") + '">' + tile.label + '</div>' +
-          '<div class="piece-detail-qty" style="color:' + (ok?"#636e72":"#fc5c65") + '">Serve: <b>' + n + '</b> \u00B7 Hai: <b>' + avail + '</b> ' + (ok?"\u2713":"\u2717") + '</div></div></div>';
+        var avail=state.inventory[k]||0, ok=avail>=n;
+        return '<div class="piece-detail" style="background:'+(ok?tile.bg:"#ffe5e7")+';border-color:'+(ok?tile.color:"#fc5c65")+'">'+
+          tileIcon(tile,22)+
+          '<div><div class="piece-detail-name" style="color:'+(ok?"#2d3436":"#fc5c65")+'">'+tile.label+'</div>'+
+          '<div class="piece-detail-qty" style="color:'+(ok?"#636e72":"#fc5c65")+'">Serve: <b>'+n+'</b> \u00B7 Hai: <b>'+avail+'</b> '+(ok?"\u2713":"\u2717")+'</div></div></div>';
       }).join("")
-    : "";
-  var steps = (idea.passi||[]).map(function(step,i){
-    return '<div class="step-item"><div class="step-num">' + (i+1) + '</div><p class="step-text">' + step.replace(/^Step\s*\d+[:\-\s]+/i,"") + '</p></div>';
-  }).join("");
-  var ideaId = storeIdea(idea);
-  return '<div class="modal-overlay" onclick="closeModal()">' +
-    '<div class="modal-box" onclick="event.stopPropagation()">' +
-      '<div class="modal-header"><span style="font-size:50px">' + (idea.emoji||"\uD83D\uDD27") + '</span><button class="close-btn" onclick="closeModal()">\u00D7</button></div>' +
-      '<div class="modal-title">' + idea.nome + (idea.is3d?' <span class="badge-3d" style="font-size:13px;vertical-align:middle">3D</span>':"") + '</div>' +
-      '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px">' +
-        '<span class="diff-badge" style="background:' + diffColor + '22;color:' + diffColor + ';font-size:12px;padding:4px 12px;border-radius:20px">' + diffLabel + '</span>' +
-        '<span class="meta-chip" style="font-size:12px;padding:4px 12px">' + idea.categoria + '</span>' +
-        '<span class="meta-chip" style="font-size:12px;padding:4px 12px">\u23F1 ' + idea.tempo_minuti + ' min</span>' +
-      '</div>' +
-      '<p class="modal-desc">' + idea.descrizione + '</p>' +
-      (piecesDetail ? '<div class="sub-label">Pezzi necessari</div><div class="pieces-grid">' + piecesDetail + '</div>' : "") +
-      (steps ? '<div class="sub-label">Istruzioni passo per passo</div><div class="steps-list">' + steps + '</div>' : "") +
-      (idea.suggerimento ? '<div class="tip-box">\uD83D\uDCA1 <strong>Suggerimento:</strong> ' + idea.suggerimento + '</div>' : "") +
-      '<button class="save-btn" onclick="toggleFavById(\'' + ideaId + '\')" style="background:' + (fav?"#FDC935":"white") + ';border:2px solid #FDC935;color:' + (fav?"white":"#2d3436") + ';font-family:Nunito,sans-serif">' +
-        (fav?"\u2B50 Rimuovi dai preferiti":"\u2606 Salva nei preferiti") +
-      '</button>' +
-    '</div></div>';
+    :"";
+  var modalIdeaId = "modal_" + (idea.nome||"x").replace(/\s/g,"_");
+  if(!_stepState[modalIdeaId]) _stepState[modalIdeaId] = 0;
+  var ideaId=storeIdea(idea);
+  return '<div class="modal-overlay" onclick="closeModal()"><div class="modal-box" onclick="event.stopPropagation()">' +
+    '<div class="modal-header"><span style="font-size:50px">'+(idea.emoji||"\uD83D\uDD27")+'</span><button class="close-btn" onclick="closeModal()">\u00D7</button></div>' +
+    '<div class="modal-title">'+idea.nome+(idea.is3d?' <span class="badge-3d" style="font-size:13px;vertical-align:middle">3D</span>':"")+'</div>' +
+    '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px">' +
+      '<span class="diff-badge" style="background:'+diffColor+'22;color:'+diffColor+';font-size:12px;padding:4px 12px;border-radius:20px">'+diffLabel+'</span>' +
+      '<span class="meta-chip" style="font-size:12px;padding:4px 12px">'+idea.categoria+'</span>' +
+      '<span class="meta-chip" style="font-size:12px;padding:4px 12px">\u23F1 '+idea.tempo_minuti+' min</span>' +
+    '</div>' +
+    '<p class="modal-desc">'+idea.descrizione+'</p>' +
+    (piecesDetail?'<div class="sub-label">Pezzi necessari</div><div class="pieces-grid">'+piecesDetail+'</div>':"") +
+    renderStepViewer(idea, modalIdeaId) +
+    (idea.suggerimento?'<div class="tip-box">\uD83D\uDCA1 <strong>Suggerimento:</strong> '+idea.suggerimento+'</div>':"") +
+    '<button class="save-btn" onclick="toggleFavById(\''+ideaId+'\')" style="background:'+(fav?"#FDC935":"white")+';border:2px solid #FDC935;color:'+(fav?"white":"#2d3436")+';font-family:Nunito,sans-serif">' +
+      (fav?"\u2B50 Rimuovi dai preferiti":"\u2606 Salva nei preferiti") +
+    '</button></div></div>';
 }
 
 function render() {
-  _ideaMap = {}; _ideaCounter = 0; // reset mappa ad ogni render
-  var tabs = [
-    {id:"inventario", label:"\uD83D\uDCE6 Inventario"},
-    {id:"genera",     label:"\u2699\uFE0F Configura"},
-    {id:"risultati",  label:"\uD83C\uDFAF Idee" + (state.ideas.length?" ("+state.ideas.length+")":"")},
-    {id:"preferiti",  label:"\u2B50 Preferiti" + (state.favs.length?" ("+state.favs.length+")":"")},
+  _ideaMap={}; _ideaCounter=0;
+  var tabs=[
+    {id:"inventario",label:"\uD83D\uDCE6 Inventario"},
+    {id:"genera",    label:"\u2699\uFE0F Configura"},
+    {id:"risultati", label:"\uD83C\uDFAF Idee"+(state.ideas.length?" ("+state.ideas.length+")":"")},
+    {id:"preferiti", label:"\u2B50 Preferiti"+(state.favs.length?" ("+state.favs.length+")":"")},
   ];
   var content="";
   if(state.tab==="inventario") content=renderInventarioTab();
-  else if(state.tab==="genera")    content=renderConfiguraTab();
+  else if(state.tab==="genera") content=renderConfiguraTab();
   else if(state.tab==="risultati") content=renderRisultatiTab();
   else if(state.tab==="preferiti") content=renderPreferiti();
   document.getElementById("app").innerHTML =
     '<div class="header"><h1>\uD83E\uDDF2 MagnetiCrea</h1><p>Inserisci le tue piastrelle e scopri cosa costruire!</p></div>' +
-    '<div class="tabs">' + tabs.map(function(t){ return '<button class="tab-btn ' + (state.tab===t.id?"active":"") + '" onclick="setTab(\'' + t.id + '\')">' + t.label + '</button>'; }).join("") + '</div>' +
-    '<div class="content">' + content + '</div>' +
+    '<div class="tabs">'+tabs.map(function(t){ return '<button class="tab-btn '+(state.tab===t.id?"active":"")+'" onclick="setTab(\''+t.id+'\')">'+t.label+'</button>'; }).join("")+'</div>' +
+    '<div class="content">'+content+'</div>' +
     renderModal();
 }
 
-window.setTab = function(tab) { state.tab=tab; render(); };
-window.updateInv = function(id,d) { state.inventory[id]=Math.max(0,(state.inventory[id]||0)+d); render(); };
-window.updateInvDirect = function(id, val) {
-  var n = parseInt(val);
-  if(isNaN(n) || n < 0) return;
-  state.inventory[id] = n;
-  var tile = TILE_TYPES.find(function(t){ return t.id===id; });
-  if(!tile) return;
-  var row = document.querySelector('[data-tile="' + id + '"]');
-  if(row) {
-    row.style.borderColor = n>0 ? tile.color+"88" : "transparent";
-    var lbl = row.querySelector(".tile-count-label");
-    if(lbl) { lbl.textContent=n+" pezzi"; lbl.style.visibility=n>0?"visible":"hidden"; }
-    var inp = row.querySelector(".ctrl-val");
-    if(inp) inp.style.color = n>0 ? tile.color : "#b2bec3";
-    var minusBtn = row.querySelector(".ctrl-btn");
-    if(minusBtn){ minusBtn.style.background=n>0?"#f0f0f0":"#fafafa"; minusBtn.style.color=n>0?"#2d3436":"#dfe6e9"; minusBtn.style.cursor=n>0?"pointer":"not-allowed"; }
+window.setTab=function(tab){ state.tab=tab; render(); };
+window.updateInv=function(id,d){ state.inventory[id]=Math.max(0,(state.inventory[id]||0)+d); render(); };
+window.updateInvDirect=function(id,val){
+  var n=parseInt(val); if(isNaN(n)||n<0) return;
+  state.inventory[id]=n;
+  var tile=TILE_TYPES.find(function(t){ return t.id===id; }); if(!tile) return;
+  var row=document.querySelector('[data-tile="'+id+'"]');
+  if(row){
+    row.style.borderColor=n>0?tile.color+"88":"transparent";
+    var lbl=row.querySelector(".tile-count-label"); if(lbl){ lbl.textContent=n+" pezzi"; lbl.style.visibility=n>0?"visible":"hidden"; }
+    var inp=row.querySelector(".ctrl-val"); if(inp) inp.style.color=n>0?tile.color:"#b2bec3";
+    var mb=row.querySelector(".ctrl-btn"); if(mb){ mb.style.background=n>0?"#f0f0f0":"#fafafa"; mb.style.color=n>0?"#2d3436":"#dfe6e9"; mb.style.cursor=n>0?"pointer":"not-allowed"; }
   }
-  var badge = document.getElementById("total-badge");
+  var badge=document.getElementById("total-badge");
   if(badge){ var tot=Object.values(state.inventory).reduce(function(a,b){return a+b;},0); badge.textContent="Totale: "+tot; }
   var total=Object.values(state.inventory).reduce(function(a,b){return a+b;},0);
-  if(!document.querySelector(".next-btn") && total>0){
+  if(!document.querySelector(".next-btn")&&total>0){
     var cnt=document.querySelector(".content");
     if(cnt){ var b=document.createElement("button"); b.className="next-btn"; b.textContent="Avanti \u2192 Configura e Genera \u2728"; b.onclick=function(){ setTab("genera"); }; cnt.appendChild(b); }
   }
 };
-window.setFilter = function(k,v) { state.filters[k]=(k==="quante"?parseInt(v):(k==="solo3d"?(v===true||v==="true"):v)); render(); };
-window.generate = generate;
-window.selectIdeaById = function(id) { var idea=_ideaMap[id]; if(idea){ state.selected=idea; render(); } };
-window.closeModal = function() { state.selected=null; render(); };
-window.toggleFavById = function(id) { var idea=_ideaMap[id]; if(idea){ toggleFav(idea); } };
+window.setFilter=function(k,v){ state.filters[k]=(k==="quante"?parseInt(v):(k==="solo3d"?(v===true||v==="true"):v)); render(); };
+window.generate=generate;
+window.selectIdeaById=function(id){ var idea=_ideaMap[id]; if(idea){ state.selected=idea; render(); } };
+window.closeModal=function(){ state.selected=null; render(); };
+window.toggleFavById=function(id){ var idea=_ideaMap[id]; if(idea){ toggleFav(idea); } };
+window.stepNav=function(modalIdeaId, newStep, total){
+  if(newStep<0||newStep>=total) return;
+  _stepState[modalIdeaId]=newStep;
+  // Re-render solo il viewer senza perdere lo scroll
+  var viewer=document.querySelector(".step-viewer");
+  if(viewer && state.selected){
+    var tmp=document.createElement("div");
+    tmp.innerHTML=renderStepViewer(state.selected, modalIdeaId);
+    viewer.parentNode.replaceChild(tmp.firstChild, viewer);
+  }
+};
 
 loadFavs();
 render();
